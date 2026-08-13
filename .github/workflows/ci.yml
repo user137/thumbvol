@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  windows:
+    name: Windows (build, test, clippy)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --all-targets
+      - run: cargo test
+      - run: cargo clippy --all-targets -- -D warnings
+
+  linux:
+    name: Linux (build, test, clippy, fmt)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libudev (evdev backend dependency)
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --all-targets
+      # Safe to run: no unit test touches /dev/input or /dev/uinput (that
+      # device I/O glue isn't unit-tested — see TASKS.md — only the
+      # platform-agnostic core/config logic and linux.rs's pure
+      # desktop-entry generation are covered here).
+      - run: cargo test
+      - run: cargo clippy --all-targets -- -D warnings
+      # Formatting is OS-agnostic; checked once here rather than on both jobs.
+      - run: cargo fmt --check
+
+  audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
