@@ -1,0 +1,56 @@
+name: Release
+
+# Separate from ci.yml on purpose: packaging (MSI/.deb) only needs to run on a
+# tag push, not on every commit — keeps the fast feedback-loop CI small (see
+# CLAUDE.md "невеликий СІ").
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows-msi:
+    name: Windows MSI (cargo-wix)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install WiX Toolset (portable zip, no admin needed)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip" -OutFile wix314.zip
+          Expand-Archive -Path wix314.zip -DestinationPath wix314 -Force
+          Add-Content -Path $env:GITHUB_PATH -Value "$PWD\wix314"
+      - run: cargo install cargo-wix
+      - run: cargo wix --nocapture
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thumbvol-msi
+          path: target/wix/*.msi
+
+  linux-deb:
+    name: Linux .deb (cargo-deb)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install cargo-deb
+      - run: cargo deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: thumbvol-deb
+          path: target/debian/*.deb
+
+  release:
+    name: Publish GitHub release
+    needs: [windows-msi, linux-deb]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            thumbvol-msi/*.msi
+            thumbvol-deb/*.deb

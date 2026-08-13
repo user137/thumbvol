@@ -31,6 +31,10 @@ MX Master на регулятор гучності — заміна важком
   компілюється лише на своїй).
 - `cargo clippy --all-targets -- -D warnings` — має бути чистим перед будь-яким комітом.
 - `cargo build --release` — реліз-білд (`opt-level=z`, `lto`, `strip`, `panic=abort`).
+- `cargo wix --nocapture` (Windows, потребує `cargo install cargo-wix` + `candle.exe`/`light.exe`
+  з WiX Toolset v3 у PATH) — MSI з `wix/main.wxs` у `target/wix/`.
+- `cargo deb` (Linux, `cargo install cargo-deb`) — `.deb` з метаданих `[package.metadata.deb]` у
+  `Cargo.toml`, у `target/debian/`.
 
 ## Неочевидні деталі (gotchas)
 
@@ -58,14 +62,21 @@ MX Master на регулятор гучності — заміна важком
   host=Windows), а на ubuntu-раннері CI (host=Linux) падає з "cannot find crate embed_resource".
   Знайдено лише реальним CI-білдом на Linux, не крос-таргет `cargo check`/`clippy` з Windows —
   жоден локальний інструмент на цій машині не міг це впіймати.
+- Пакунки (MSI/`.deb`, D10) не керують автостартом — його й далі пише сама програма при першому
+  запуску. Перед видаленням пакунка треба `thumbvol --uninstall-autostart`, інакше запис в
+  автозапуску переживає видалення й вказує на вже неіснуючий бінарник. Windows MSI —
+  `InstallScope='perUser'` (без адмін-прав); компонент з файлом під `LocalAppDataFolder` мусить
+  мати `KeyPath` на HKCU-реєстр, не на файл (`ICE38`), і явний `RemoveFolder` для чистого
+  видалення (`ICE64`) — реально зібрано й перевірено (`msiexec /i`/`/x`) локально. `.deb` реально
+  зібрано й встановлено/видалено на тій самій Ubuntu-VM, що й основний Linux-бекенд;
+  `dpkg-shlibdeps` сам визначив `Depends: libc6` — жодних ручних залежностей не знадобилось,
+  бо `evdev` не лінкується проти `libudev`. Збірка пакунків — окремий `release.yml`, тригер на
+  тег `v*`, не в основному CI (щоб не подовжувати швидкий feedback-loop).
 
-## Три Б: безпека користувача / софтверна / харверна
+## Три Б
 
-Кожна зміна тут перевіряється на всіх трьох (повний виклад і тести — `~/.claude/dev-practices.md`
-§7): не залишати користувача в гіршому стані непомітно для нього (D1 — без grab миші; deferred
-`SendInput` — без мовчазного unhook); безпека проти ворожого вводу, видна з рядка (unquoted-path
-фікс, `MAX_STEPS_PER_FEED`); найменші привілеї й недовіра до пристрою (`input`/`uinput`-групи, не
-root; HID-дельта — ворожий вхід, не довірене число).
+Три ноги й тести — `~/.claude/dev-practices.md` §7. Тут: D1/deferred `SendInput` (користувач),
+unquoted-path фікс/`MAX_STEPS_PER_FEED` (софтверна), `input`/`uinput`-групи без root (нижній шар).
 
 ## Test-first, дисципліна коду
 

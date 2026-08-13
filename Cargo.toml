@@ -2,6 +2,7 @@
 name = "thumbvol"
 version = "0.1.0"
 edition = "2024"
+authors = ["user137"]
 description = "Lightweight thumb-wheel-to-volume daemon for Logitech MX Master mice (Windows/Linux)"
 license = "MIT"
 repository = "https://github.com/user137/thumbvol"
@@ -40,6 +41,24 @@ embed-resource = "2"
 [dev-dependencies]
 tempfile = "3"
 proptest = "1"
+
+[package.metadata.deb]
+maintainer = "user137"
+copyright = "2026, user137"
+license-file = ["LICENSE", "0"]
+extended-description = """\
+Lightweight thumb-wheel-to-volume daemon for Logitech MX Master mice — a tiny \
+replacement for Logi Options/Options+ that does exactly one thing. Autostarts \
+via XDG autostart on first run; see README.md for /dev/input and /dev/uinput \
+group permissions (input, uinput)."""
+section = "utils"
+priority = "optional"
+depends = "$auto"
+assets = [
+    ["target/release/thumbvol", "usr/bin/", "755"],
+    ["config.example.toml", "usr/share/doc/thumbvol/", "644"],
+    ["README.md", "usr/share/doc/thumbvol/", "644"],
+]
 
 [profile.release]
 opt-level = "z"

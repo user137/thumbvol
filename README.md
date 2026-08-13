@@ -28,7 +28,25 @@ Install it and forget about it: it autostarts with the OS, no background telemet
 Everything else (DPI switching, gestures, per-app profiles, other buttons) is deliberately out of
 scope for v1 — see [TASKS.md](TASKS.md).
 
-## Install
+## Install from a package (recommended)
+
+Prebuilt packages — an MSI (Windows) and a `.deb` (Linux) — are published on the
+[Releases](https://github.com/user137/thumbvol/releases) page for every tagged release.
+
+- **Windows:** run the `.msi`. It installs per-user (no admin rights, no UAC prompt) into
+  `%LocalAppData%\thumbvol\`. The final screen has a "Launch thumbvol" checkbox that starts it
+  right away (the first run registers autostart itself).
+- **Linux:** `sudo dpkg -i thumbvol_*.deb` (or `apt install ./thumbvol_*.deb` to pull in
+  dependencies automatically). Installs to `/usr/bin/thumbvol`; `/dev/input`/`/dev/uinput`
+  permissions are as described below.
+
+**Before removing the package**, run `thumbvol --uninstall-autostart` — uninstalling (either the
+MSI or `dpkg -r`) only removes the files, not the autostart entry: that's written by the app
+itself on first run (`HKCU\...\Run` / `~/.config/autostart/thumbvol.desktop`), and the installer
+has no record of it. Skip this and the OS will silently try to launch a binary that's no longer
+there on the next login.
+
+## Install from source
 
 Requires [Rust](https://rustup.rs/) (stable).
 
