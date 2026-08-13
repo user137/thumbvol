@@ -51,6 +51,13 @@ MX Master на регулятор гучності — заміна важком
   "спрощувати" назад до 1 без повторного тесту на залізі.
 - Крейт `windows` 0.58: `SendInput(pinputs: &[INPUT], cbsize: i32)` приймає слайс (лічильник
   неявний), не сиру C-трійку параметрів; `SetWindowsHookExW(...) -> Result<HHOOK>`.
+- `build.rs` мусить гейтити `embed_resource::compile(...)` компайл-тайм `#[cfg(windows)]`, не
+  рантайм-перевіркою env-змінної. `[target.'cfg(windows)'.build-dependencies]` резолвиться відносно
+  **host**-платформи, що компілює build-скрипт, не таргету — тож на Windows-машині build.rs
+  компілюється успішно навіть при `cargo check --target x86_64-unknown-linux-gnu` (крейт є, бо
+  host=Windows), а на ubuntu-раннері CI (host=Linux) падає з "cannot find crate embed_resource".
+  Знайдено лише реальним CI-білдом на Linux, не крос-таргет `cargo check`/`clippy` з Windows —
+  жоден локальний інструмент на цій машині не міг це впіймати.
 
 ## Test-first, дисципліна коду
 
